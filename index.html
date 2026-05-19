@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Representationsunderlag – UI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#1a1a1a;--white:#fff;--gray:#f4f3f0;--gray2:#e8e6e1;
+  --gray3:#b0ada6;--gray4:#6b6860;--blue:#0f4c81;
+  --green:#1a7a40;--green-bg:#f0faf4;--green-br:#b3e8c8;
+  --info-bg:#f0f7ff;--info-br:#cce0f5;
+  --warn-bg:#fffbeb;--warn-br:#f0d080;
+  --red:#c0392b;--red-bg:#fff5f5;--red-br:#fcc;
+  --r:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--black);min-height:100vh}
+
+/* HEADER */
+.header{background:var(--black);color:#fff;padding:0 1.25rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.hl{display:flex;align-items:center;gap:11px}
+.ht{font-family:'DM Serif Display',serif;font-size:14px;line-height:1.25}
+.hs{font-size:11px;opacity:.5;letter-spacing:.05em}
+.dots{display:flex;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .2s}
+.dot.active{background:#fff}.dot.done{background:rgba(255,255,255,.5)}
+
+/* MAIN */
+.main{max-width:680px;margin:0 auto;padding:1.5rem 1rem 5rem}
+@media(min-width:600px){.main{padding:2rem 1.5rem 5rem}}
+
+/* STEPS */
+.step{display:none}.step.on{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.slbl{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--gray4);margin-bottom:4px}
+.stit{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:1.25rem;line-height:1.2}
+@media(min-width:500px){.stit{font-size:28px}}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--gray2);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:.9rem}
+@media(min-width:500px){.card{padding:1.2rem 1.4rem}}
+.ctit{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray4);margin-bottom:.9rem}
+
+/* OPTION CARDS */
+.opt{display:flex;gap:12px;align-items:flex-start;background:var(--white);border:1px solid var(--gray2);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:.75rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.opt:active,.opt:hover{border-color:var(--black);box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.oic{font-size:24px;margin-top:1px;flex-shrink:0}
+.otit{font-size:15px;font-weight:500;margin-bottom:3px}
+.odesc{font-size:13px;color:var(--gray4);line-height:1.5}
+
+/* UPLOAD ZONE */
+.upz{border:2px dashed var(--gray2);border-radius:var(--r);padding:1.5rem 1rem;text-align:center;cursor:pointer;position:relative;transition:border-color .15s,background .15s}
+.upz:active,.upz:hover{border-color:var(--black);background:var(--gray)}
+.upz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upz-ic{font-size:26px;color:var(--gray3);margin-bottom:6px}
+.upz-tx{font-size:14px;color:var(--gray4)}.upz-tx strong{color:var(--black)}
+.upz-hn{font-size:12px;color:var(--gray3);margin-top:3px}
+
+/* STATUS */
+.sbar{display:none;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--r);font-size:13px;margin-top:9px}
+.sbar.show{display:flex}
+.sbar.info{background:var(--info-bg);border:1px solid var(--info-br);color:var(--blue)}
+.sbar.ok{background:var(--green-bg);border:1px solid var(--green-br);color:var(--green)}
+.sbar.err{background:var(--red-bg);border:1px solid var(--red-br);color:var(--red)}
+.sbar.warn{background:var(--warn-bg);border:1px solid var(--warn-br);color:#7a5800}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* UPLOADED FILES */
+.ufl{margin-top:9px}
+.ufr{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--gray);border-radius:var(--r);font-size:13px;margin-bottom:4px}
+.ufn{flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uft{font-size:11px;color:var(--gray4);background:var(--gray2);padding:2px 6px;border-radius:20px;flex-shrink:0}
+
+/* FORM */
+.field{margin-bottom:.9rem}.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;font-weight:500;color:var(--gray4);margin-bottom:4px}
+input[type=text],input[type=date],textarea{width:100%;padding:9px 11px;font-size:15px;font-family:'DM Sans',sans-serif;border:1px solid var(--gray2);border-radius:var(--r);background:var(--white);color:var(--black);outline:none;transition:border-color .15s;-webkit-appearance:none}
+input:focus,textarea:focus{border-color:var(--black)}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+.g2{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:480px){.g2{grid-template-columns:1fr 1fr}}
+
+/* AUTOCOMPLETE */
+.acw{position:relative}
+.acl{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--white);border:1px solid var(--gray2);border-radius:var(--r);box-shadow:0 6px 20px rgba(0,0,0,.1);z-index:60;max-height:220px;overflow-y:auto;display:none}
+.acl.open{display:block}
+.aci{padding:10px 11px;font-size:14px;cursor:pointer;display:flex;gap:9px;align-items:baseline}
+.aci:hover,.aci.foc{background:var(--gray)}
+.acnr{font-size:11px;font-weight:600;color:var(--gray4);min-width:34px}
+
+/* PARTICIPANTS */
+.pr{display:grid;grid-template-columns:1fr 1fr 34px;gap:7px;align-items:center;margin-bottom:8px;position:relative}
+.pac{position:absolute;top:calc(100% - 2px);left:0;width:calc(50% - 4px);background:var(--white);border:1px solid var(--gray2);border-radius:var(--r);box-shadow:0 4px 14px rgba(0,0,0,.09);z-index:45;max-height:180px;overflow-y:auto;display:none}
+.pac.open{display:block}
+.paci{padding:9px 11px;font-size:14px;cursor:pointer;display:flex;gap:7px;align-items:baseline}
+.paci:hover,.paci.foc{background:var(--gray)}
+.pacd{font-size:11px;color:var(--gray4)}
+.rmbtn{background:none;border:1px solid var(--gray2);border-radius:var(--r);width:34px;height:38px;cursor:pointer;color:var(--gray4);font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.rmbtn:hover{border-color:var(--red);color:var(--red)}
+.addbtn{width:100%;background:none;border:1px dashed var(--gray2);border-radius:var(--r);padding:9px 12px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--gray4);transition:all .15s;margin-top:3px}
+.addbtn:hover,.addbtn:active{border-color:var(--black);color:var(--black)}
+
+/* BADGES */
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:500;margin:2px}
+.bdg-g{background:var(--green-bg);color:var(--green);border:1px solid var(--green-br)}
+.bdg-w{background:var(--warn-bg);color:#7a5800;border:1px solid var(--warn-br)}
+.imnote{font-size:12px;color:var(--gray4);margin-top:5px;line-height:1.6}
+
+/* BUTTONS */
+.btnrow{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;flex-wrap:wrap}
+.btn{padding:11px 20px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;border-radius:var(--r);cursor:pointer;transition:all .15s;border:1px solid var(--gray2);background:transparent;color:var(--gray4);display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;-webkit-tap-highlight-color:transparent}
+.btn:hover,.btn:active{border-color:var(--black);color:var(--black)}
+.btnp{background:var(--black);color:#fff;border-color:var(--black)}
+.btnp:hover,.btnp:active{background:#333;color:#fff}
+.btn-full{width:100%;margin-bottom:8px}
+.btn-blue{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-blue:hover,.btn-blue:active{background:#0d3f6b;color:#fff}
+
+/* PREVIEW */
+.plbl{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--gray3);margin-bottom:3px}
+.pval{font-size:14px;line-height:1.5;margin-bottom:.9rem}
+.ptbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;margin-top:4px}
+.ptbl th{padding:5px 8px;background:var(--gray);font-weight:500;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--gray4);border:1px solid var(--gray2);text-align:left}
+.ptbl td{padding:6px 8px;border:1px solid var(--gray2);vertical-align:top;word-break:break-word}
+.ptbl tr:nth-child(even) td{background:#fafaf9}
+.div{border:none;border-top:1px solid var(--gray2);margin:.9rem 0}
+
+/* EXPORT */
+.expg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.expc{background:var(--white);border:1px solid var(--gray2);border-radius:var(--r);padding:1rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.expc:hover,.expc:active{border-color:var(--black);box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.expic{font-size:22px;margin-bottom:6px}
+.expt{font-size:14px;font-weight:500;margin-bottom:2px}
+.expd{font-size:12px;color:var(--gray4);line-height:1.4}
+
+/* DONE CARD */
+.done-card{background:var(--green-bg);border:1px solid var(--green-br);border-radius:var(--r);padding:1.1rem 1.2rem;margin-bottom:.9rem;display:flex;gap:12px;align-items:flex-start}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hl">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <circle cx="20" cy="5" r="3.5" fill="white"/>
+      <path d="M6 11 Q6 27 16 27 Q26 27 26 11" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="ht">Utrikespolitiska institutet</div>
+      <div class="hs">Representationsunderlag</div>
+    </div>
+  </div>
+  <div class="dots">
+    <div class="dot active" id="dot0"></div>
+    <div class="dot" id="dot1"></div>
+    <div class="dot" id="dot2"></div>
+    <div class="dot" id="dot3"></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STEP 0 -->
+  <div class="step on" id="step0">
+    <div class="slbl">Steg 1 av 4</div>
+    <div class="stit">Hur vill du börja?</div>
+    <div class="opt" onclick="startUpload()">
+      <div class="oic">📄</div>
+      <div>
+        <div class="otit">Ladda upp dokument</div>
+        <div class="odesc">PDF, Excel eller CSV – program, inbjudan, deltagarlista. AI läser av och fyller i fälten. Flera filer går bra.</div>
+      </div>
+    </div>
+    <div class="opt" onclick="startManual()">
+      <div class="oic">✏️</div>
+      <div>
+        <div class="otit">Fyll i manuellt</div>
+        <div class="odesc">Gå direkt till formuläret och skriv in alla uppgifter själv.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step" id="step1">
+    <div class="slbl">Steg 2 av 4</div>
+    <div class="stit">Fyll i uppgifter</div>
+
+    <div class="card" id="upCard" style="display:none">
+      <div class="ctit">Ladda upp dokument</div>
+      <div class="upz">
+        <input type="file" id="fileIn" accept=".pdf,.xlsx,.xls,.csv" multiple onchange="handleFiles(this.files)">
+        <div class="upz-ic">☁️</div>
+        <div class="upz-tx"><strong>Välj filer</strong> eller dra hit</div>
+        <div class="upz-hn">PDF · Excel · CSV – ladda upp flera om du vill</div>
+      </div>
+      <div class="ufl" id="upList"></div>
+      <div class="sbar" id="aiBar"><div class="spin" id="aiSpin"></div><span id="aiTxt">Bearbetar…</span></div>
+    </div>
+
+    <div class="card">
+      <div class="ctit">Grunduppgifter</div>
+      <div class="g2">
+        <div class="field"><label>Datum</label><input type="date" id="f_dat"></div>
+        <div class="field"><label>Kund / leverantör / restaurang</label><input type="text" id="f_lev" placeholder="t.ex. The Bakery"></div>
+      </div>
+      <div class="field">
+        <label>Resultatenhet / projekt</label>
+        <div class="acw">
+          <input type="text" id="f_re" placeholder="Skriv nummer eller namn…" autocomplete="off" oninput="reS()" onkeydown="reK(event)" onfocus="reS()">
+          <div class="acl" id="reL"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Samordnare / ansvarig</label>
+        <div class="acw">
+          <input type="text" id="f_sam" placeholder="Skriv namn…" autocomplete="off" oninput="samS()" onkeydown="samK(event)" onfocus="samS()">
+          <div class="acl" id="samL"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctit">Beskrivning</div>
+      <div class="field"><label>Syfte, plats och typ av aktivitet</label><textarea id="f_besk" rows="4" placeholder="Beskriv evenemangets syfte kopplat till verksamheten…"></textarea></div>
+      <div class="field"><label>Syftet med konferensen <span style="font-weight:400;color:var(--gray3)">(om relevant)</span></label><textarea id="f_skf" rows="3" placeholder="Konferensens syfte…"></textarea></div>
+    </div>
+
+    <div class="card">
+      <div class="ctit">Deltagare från UI <span style="opacity:.5;font-size:10px;font-weight:400">(interna)</span></div>
+      <div id="intL"></div>
+      <button class="addbtn" onclick="addInt()">+ Lägg till intern deltagare</button>
+    </div>
+
+    <div class="card">
+      <div class="ctit">Externa deltagare</div>
+      <div id="extL"></div>
+      <button class="addbtn" onclick="addExt()">+ Lägg till extern deltagare</button>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" onclick="go(0)">← Tillbaka</button>
+      <button class="btn btnp" onclick="goPreview()">Förhandsgranska →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step2">
+    <div class="slbl">Steg 3 av 4</div>
+    <div class="stit">Granska &amp; exportera</div>
+    <div class="card" id="prevCard"></div>
+    <div class="card">
+      <div class="ctit">Exportera</div>
+      <div class="expg">
+        <div class="expc" onclick="exportPDF()">
+          <div class="expic">📋</div>
+          <div class="expt">Spara PDF</div>
+          <div class="expd">Spara underlag som PDF att bifoga fakturan</div>
+        </div>
+        <div class="expc" onclick="exportExcel()">
+          <div class="expic">📊</div>
+          <div class="expt">Excel</div>
+          <div class="expd">Öppningsbart i Excel för vidare hantering</div>
+        </div>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn" onclick="go(1)">← Redigera</button>
+      <button class="btn btnp" onclick="go(3)">Skicka till ekonomi →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step3">
+    <div class="slbl">Steg 4 av 4</div>
+    <div class="stit">Skicka till ekonomi</div>
+
+    <div class="card">
+      <div class="ctit">Förberett mejl</div>
+
+      <div class="field">
+        <label>Till</label>
+        <input type="email" id="mail_to" value="ekonomi@ui.se">
+      </div>
+      <div class="field">
+        <label>Kopia (valfritt)</label>
+        <input type="email" id="mail_cc" placeholder="din.epost@ui.se">
+      </div>
+      <div class="field">
+        <label>Ämnesrad</label>
+        <input type="text" id="mail_subj">
+      </div>
+      <div class="field">
+        <label>Meddelande</label>
+        <textarea id="mail_body" rows="5"></textarea>
+      </div>
+
+      <div style="margin-top:1rem">
+        <button class="btn btn-blue btn-full" onclick="openOutlook()">
+          ✉️ Öppna i Outlook med texten ifylld
+        </button>
+        <button class="btn btn-full" style="color:var(--gray4)" onclick="copyMail()">
+          📋 Kopiera mejltext
+        </button>
+      </div>
+      <div class="sbar" id="mailBar" style="margin-top:8px"></div>
+
+      <div style="margin-top:1rem;padding:10px 12px;background:var(--warn-bg);border:1px solid var(--warn-br);border-radius:var(--r);font-size:13px;color:#7a5800;line-height:1.5">
+        💡 <strong>Bifoga PDF:</strong> Spara PDF:en på steg 3 och bifoga den till mejlet manuellt – webbläsaren tillåter tyvärr inte automatisk bifogning.
+      </div>
+    </div>
+
+    <div class="done-card">
+      <div style="font-size:22px">✅</div>
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--green);margin-bottom:3px">Klart!</div>
+        <div style="font-size:13px;color:#2a6040;line-height:1.5">Vill du göra ett nytt underlag? Tryck på knappen nedan.</div>
+      </div>
+    </div>
+
+    <button class="btn btn-full" style="text-align:center" onclick="resetAll()">🔄 Starta om – nytt underlag</button>
+
+    <div class="btnrow">
+      <button class="btn" onclick="go(2)">← Tillbaka</button>
+    </div>
+  </div>
+
+</div>
+
+<iframe id="pdfFrame" style="display:none;position:fixed;left:-9999px;width:210mm;height:297mm"></iframe>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── DATA ─────────────────────────────────────────────────
+
+const COORDINATORS = [
+  {n:"Hedvig Pettersson",d:"SCEEUS"},
+  {n:"Ebba Kongstad",d:"FOB"},
+  {n:"Victor Norderstål",d:"NKK"},
+  {n:"Ella Ståhl",d:"NKK"}
+  // Lägg till fler samordnare här
+];
+
+const STAFF=[
+  {n:"Åsa Nyberg",d:"ADM"},{n:"Yvonne Häggström",d:"ADM"},{n:"Hampus Håkansson",d:"ADM"},
+  {n:"Helena Berger",d:"ADM"},{n:"Veronika Elebäck",d:"ADM"},{n:"Monica Haglund",d:"ADM"},
+  {n:"Christel Lindblom",d:"ADM"},{n:"Emma Viney",d:"ADM"},{n:"Johanna Stenersen",d:"ADM"},
+  {n:"Allan Ahmad",d:"ADM"},{n:"Marie Eriksson",d:"ADM"},
+  {n:"Henrik Chetan Aspengren",d:"AP"},{n:"Erik Mollestam",d:"AP-NKK"},{n:"Neil Melvin",d:"Arktis"},
+  {n:"Christin Mays",d:"DO"},{n:"Barbara Kunz",d:"DO"},{n:"Tove Lagerström",d:"DO"},{n:"Emma Trift",d:"DO"},
+  {n:"Alexandra Glemstedt",d:"EGP"},{n:"Torkel Gure",d:"EGP"},{n:"Elin Pöllänen",d:"EGP"},
+  {n:"Ludvig Broomé",d:"EGP"},{n:"Hanna Leonardsson",d:"EGP"},{n:"Astrid Brodén",d:"EGP"},
+  {n:"Alexandra Buylova",d:"EGP"},{n:"Gunilla Reischl",d:"EGP"},{n:"Mark Rhinard",d:"EGP"},
+  {n:"Björn Fägersten",d:"EGP"},{n:"Niklas Rossbach",d:"EGP"},{n:"Naghmeh Nasiritousi",d:"EGP"},
+  {n:"Niklas Bremberg",d:"EGP"},
+  {n:"Trolle Lundbergh",d:"FOB"},{n:"Pia Bernhardson Forssell",d:"FOB"},{n:"Pia Daleke",d:"FOB"},
+  {n:"Görrel Espelund",d:"FOB"},{n:"Lena Höglund",d:"FOB"},{n:"Martina Johannesson",d:"FOB"},
+  {n:"Ebba Kongstad",d:"FOB"},{n:"Julia Kviberg",d:"FOB"},{n:"Ylva Lindahl",d:"FOB"},
+  {n:"Lennart Simonsson",d:"FOB"},{n:"Ola Westerberg",d:"FOB"},{n:"Amelie Geijer",d:"FOB"},
+  {n:"Annica Ögren",d:"FOB"},
+  {n:"Jakob Hallgren",d:"Ledningen"},
+  {n:"Fredrik Meiton",d:"MENA"},{n:"Zamzam Khatab",d:"MENA"},
+  {n:"Camilla Andreasson",d:"NKK"},{n:"Linus Hagström",d:"NKK"},{n:"Anton Irekvist Rehn",d:"NKK"},
+  {n:"Ella Ståhl",d:"NKK"},{n:"Henrik Wachtmeister",d:"NKK"},{n:"Patrik Andersson",d:"NKK"},
+  {n:"Björn Jerdén",d:"NKK"},{n:"Sofia Ledberg",d:"NKK"},{n:"Helena Löfgren",d:"NKK"},
+  {n:"Erik Mo Welin",d:"NKK"},{n:"Victor Norderstål",d:"NKK"},{n:"Gustav Sundqvist",d:"NKK"},
+  {n:"Miriam Tardell",d:"NKK"},{n:"Alexis von Sydow",d:"NKK"},{n:"Lisa Zhang",d:"NKK"},
+  {n:"Fredrik Löjdquist",d:"SCEEUS"},{n:"Emy Wängborg",d:"SCEEUS"},{n:"Aleksander Golts",d:"SCEEUS"},
+  {n:"Jakob Hedenskog",d:"SCEEUS"},{n:"Stefan Ingvarsson",d:"SCEEUS"},{n:"Martin Kragh",d:"SCEEUS"},
+  {n:"Klara Lindström",d:"SCEEUS"},{n:"Hedvig Pettersson",d:"SCEEUS"},{n:"Fanny Wallberg",d:"SCEEUS"},
+  {n:"Minna Ålander",d:"SCEEUS"},{n:"Ekaterina Kalinina",d:"SCEEUS"},{n:"Clara Sandgren",d:"SCEEUS"}
+];
+const SMAP=new Map(STAFF.map(s=>[s.n.toLowerCase(),s]));
+
+const RE=[
+  {nr:"131",nm:"Utrikesmagasinet"},{nr:"140",nm:"UI Podd"},{nr:"150",nm:"Landguiden"},
+  {nr:"240",nm:"Evenemang"},{nr:"300",nm:"Forskningsavdelningen allmänt"},
+  {nr:"301",nm:"Forskningsomkostnader"},{nr:"310",nm:"Programavdelning chef"},
+  {nr:"331",nm:"FM Björn Jerdén – Asien"},{nr:"339",nm:"Asien – Henrik Chetan Aspengren"},
+  {nr:"360",nm:"Global politik & säkerhet"},{nr:"371",nm:"FM Mark Rhinard – Europa"},
+  {nr:"379",nm:"Europa"},{nr:"381",nm:"MENA"},
+  {nr:"410",nm:"Kunskapscentrum Kina (NKK)"},
+  {nr:"420",nm:"Kunskapscentrum Östeuropa (SCEEUS) – Stockholm Centre for Eastern European Studies"},
+  {nr:"501",nm:"Samfundet"},{nr:"502",nm:"Styrelsen"},{nr:"510",nm:"Ledningen allmänt"},
+  {nr:"520",nm:"Administrativa avdelningen"},{nr:"530",nm:"Folkbildning"},
+  {nr:"540",nm:"Almedalen"},{nr:"550",nm:"UI gemensamt"},
+  {nr:"551",nm:"Övergripande aktivitet – Direktör"},{nr:"552",nm:"Digitalisering"},
+  {nr:"554",nm:"Centrala programanslag"},{nr:"555",nm:"Amiralitetshuset"},
+  {nr:"556",nm:"Uppdragsbaserad utbildning"},{nr:"705",nm:"Powershift in East Asia"},
+  {nr:"706",nm:"Translating Global Norms"},
+  {nr:"1002",nm:"UD – Analys Indien 2024"},{nr:"1004",nm:"Krisstöd Ryssland 2023-2"},
+  {nr:"1005",nm:"Kinas rolle i forsyningskjeder"},
+  {nr:"1006",nm:"Sverigebaserade forskares upplevelser – Kina"},
+  {nr:"1007",nm:"Sverigebilden i Kina"},{nr:"1008",nm:"UD – Analys Indien 2025"},
+  {nr:"1009",nm:"Konferens GEO ekonomi"},{nr:"1010",nm:"CRIMINA – Kritiska mineraler Arktis"},
+  {nr:"1011",nm:"AT.9242170 UNDSÄK – UI 25"},
+  {nr:"1012",nm:"Geoekonomiska intressen Indopacifiska"},
+  {nr:"1013",nm:"NATO-China 1.5 (UD)"},
+  {nr:"1014",nm:"Utmaningar Ryssland – Europeiskt rundabordssamtal"},
+  {nr:"1015",nm:"Verksamhetsstöd"},{nr:"1016",nm:"UD – Analysstöd Indien 2026"},
+  {nr:"1017",nm:"NATO-China 1.5 (NATO)"},{nr:"1018",nm:"Arktis"},
+  {nr:"1019",nm:"Uppdatering Dashboard"},{nr:"2001",nm:"Horizon/ReConnect China"},
+  {nr:"2002",nm:"Klimatneutrala städer"},{nr:"6701",nm:"Revamping Resilience and Security"},
+  {nr:"6800",nm:"Företagen i ny försvars- och säkerhetspolitisk situation/SOFF"},
+  {nr:"6900",nm:"SOM-undersökning"},{nr:"6901",nm:"Kartläggning demokrati i kommuner"},
+  {nr:"6902",nm:"Utbildning ansvarsfull internationalisering"},
+  {nr:"64018",nm:"Global hälsodiplomati"},{nr:"64019",nm:"Aspekter av kärnvapen"}
+];
+
+// ── STATE ────────────────────────────────────────────────
+let cur=0,iRows=[],eRows=[],ic=0,ec=0,reI=-1,samI=-1;
+
+// ── NAVIGATION ───────────────────────────────────────────
+function go(n){
+  document.getElementById('step'+cur).classList.remove('on');
+  cur=n;
+  document.getElementById('step'+n).classList.add('on');
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('dot'+i);
+    d.className='dot'+(i===cur?' active':i<cur?' done':'');
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===3) prefillMail();
+}
+
+function startUpload(){document.getElementById('upCard').style.display='block';go(1);initR();}
+function startManual(){document.getElementById('upCard').style.display='none';go(1);initR();}
+function initR(){if(!iRows.length)addInt();if(!eRows.length)addExt();}
+
+function resetAll(){
+  ['f_dat','f_lev','f_re','f_sam','f_besk','f_skf'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('intL').innerHTML='';
+  document.getElementById('extL').innerHTML='';
+  document.getElementById('upList').innerHTML='';
+  document.getElementById('aiBar').className='sbar';
+  iRows=[];eRows=[];ic=0;ec=0;
+  go(0);
+}
+
+// ── RESULTATENHET AUTOCOMPLETE ──────────────────────────
+function reS(){
+  const q=document.getElementById('f_re').value.toLowerCase().trim();
+  const L=document.getElementById('reL');reI=-1;
+  if(!q){L.classList.remove('open');return;}
+  const m=RE.filter(r=>r.nr.includes(q)||r.nm.toLowerCase().includes(q)).slice(0,9);
+  if(!m.length){L.classList.remove('open');return;}
+  L.innerHTML=m.map(r=>`<div class="aci" onmousedown="pickRE('${r.nr}','${r.nm.replace(/'/g,"\\'")}')"><span class="acnr">${r.nr}</span><span>${r.nm}</span></div>`).join('');
+  L.classList.add('open');
+}
+function pickRE(nr,nm){document.getElementById('f_re').value=nr+' – '+nm;document.getElementById('reL').classList.remove('open');}
+function reK(e){
+  const L=document.getElementById('reL');const its=L.querySelectorAll('.aci');if(!its.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();reI=Math.min(reI+1,its.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();reI=Math.max(reI-1,-1);}
+  else if(e.key==='Enter'&&reI>=0){e.preventDefault();its[reI].dispatchEvent(new MouseEvent('mousedown'));return;}
+  else if(e.key==='Escape'){L.classList.remove('open');return;}
+  its.forEach((it,i)=>it.classList.toggle('foc',i===reI));
+}
+
+// ── SAMORDNARE AUTOCOMPLETE ─────────────────────────────
+function samS(){
+  const q=document.getElementById('f_sam').value.toLowerCase().trim();
+  const L=document.getElementById('samL');samI=-1;
+  if(!q){L.classList.remove('open');return;}
+  const m=COORDINATORS.filter(c=>c.n.toLowerCase().includes(q)).slice(0,8);
+  if(!m.length){L.classList.remove('open');return;}
+  L.innerHTML=m.map(c=>`<div class="aci" onmousedown="pickSam('${c.n.replace(/'/g,"\\'")}','${c.d}')"><span>${c.n}</span><span class="acnr" style="min-width:0;margin-left:auto;font-size:11px">${c.d}</span></div>`).join('');
+  L.classList.add('open');
+}
+function pickSam(nm,d){document.getElementById('f_sam').value=nm;document.getElementById('samL').classList.remove('open');}
+function samK(e){
+  const L=document.getElementById('samL');const its=L.querySelectorAll('.aci');if(!its.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();samI=Math.min(samI+1,its.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();samI=Math.max(samI-1,-1);}
+  else if(e.key==='Enter'&&samI>=0){e.preventDefault();its[samI].dispatchEvent(new MouseEvent('mousedown'));return;}
+  else if(e.key==='Escape'){L.classList.remove('open');return;}
+  its.forEach((it,i)=>it.classList.toggle('foc',i===samI));
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.acw')){
+    document.getElementById('reL').classList.remove('open');
+    document.getElementById('samL').classList.remove('open');
+  }
+});
+
+// ── PARTICIPANTS ─────────────────────────────────────────
+function esc(s){return(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+function addInt(nm='',dept=''){
+  const id='i'+ic++;iRows.push(id);
+  const w=document.getElementById('intL');const r=document.createElement('div');r.className='pr';r.id='r_'+id;
+  r.innerHTML=`<div style="position:relative"><input type="text" placeholder="Namn" id="n_${id}" value="${esc(nm)}" autocomplete="off" style="font-size:15px" oninput="pS('${id}')" onkeydown="pK(event,'${id}')" onfocus="pS('${id}')"><div class="pac" id="pac_${id}"></div></div><input type="text" placeholder="Avdelning" id="d_${id}" value="${esc(dept)}" style="background:#fafaf9;color:var(--gray4);font-size:15px" readonly><button class="rmbtn" onclick="rmR('${id}','i')">×</button>`;
+  w.appendChild(r);
+}
+function addExt(nm='',org=''){
+  const id='e'+ec++;eRows.push(id);
+  const w=document.getElementById('extL');const r=document.createElement('div');r.className='pr';r.id='r_'+id;
+  r.innerHTML=`<input type="text" placeholder="Namn" id="n_${id}" value="${esc(nm)}" style="font-size:15px"><input type="text" placeholder="Företag / org." id="d_${id}" value="${esc(org)}" style="font-size:15px"><button class="rmbtn" onclick="rmR('${id}','e')">×</button>`;
+  w.appendChild(r);
+}
+function rmR(id,t){document.getElementById('r_'+id)?.remove();if(t==='i')iRows=iRows.filter(x=>x!==id);else eRows=eRows.filter(x=>x!==id);}
+
+function pS(id){
+  const q=(document.getElementById('n_'+id)?.value||'').toLowerCase().trim();
+  const p=document.getElementById('pac_'+id);if(!p)return;
+  if(!q){p.classList.remove('open');return;}
+  const m=STAFF.filter(s=>s.n.toLowerCase().includes(q)).slice(0,7);
+  if(!m.length){p.classList.remove('open');return;}
+  p.innerHTML=m.map(s=>`<div class="paci" onmousedown="ppick('${id}','${s.n.replace(/'/g,"\\'")}','${s.d}')">${s.n}<span class="pacd">${s.d}</span></div>`).join('');
+  p.classList.add('open');
+}
+function ppick(id,nm,d){
+  const ni=document.getElementById('n_'+id);const di=document.getElementById('d_'+id);
+  if(ni)ni.value=nm;if(di)di.value=d;
+  document.getElementById('pac_'+id)?.classList.remove('open');
+}
+function pK(e,id){
+  const p=document.getElementById('pac_'+id);if(!p)return;
+  const its=p.querySelectorAll('.paci');let fi=-1;
+  its.forEach((it,i)=>{if(it.classList.contains('foc'))fi=i;});
+  if(e.key==='ArrowDown'){e.preventDefault();fi=Math.min(fi+1,its.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();fi=Math.max(fi-1,-1);}
+  else if(e.key==='Enter'&&fi>=0){e.preventDefault();its[fi].dispatchEvent(new MouseEvent('mousedown'));return;}
+  else if(e.key==='Escape'){p.classList.remove('open');return;}
+  its.forEach((it,i)=>it.classList.toggle('foc',i===fi));
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.pr'))document.querySelectorAll('.pac').forEach(p=>p.classList.remove('open'));});
+
+function curInt(){return new Set(iRows.map(id=>(document.getElementById('n_'+id)?.value||'').toLowerCase().trim()).filter(Boolean));}
+function curExt(){return new Set(eRows.map(id=>(document.getElementById('n_'+id)?.value||'').toLowerCase().trim()).filter(Boolean));}
+
+// ── FILE HANDLING ────────────────────────────────────────
+async function handleFiles(files){
+  if(!files||!files.length)return;
+  const listEl=document.getElementById('upList');
+  for(const file of files){
+    const ext=file.name.split('.').pop().toLowerCase();
+    const sid='fs_'+Math.random().toString(36).slice(2);
+    const row=document.createElement('div');row.className='ufr';
+    row.innerHTML=`<span class="ufn">${file.name}</span><span class="uft">${ext.toUpperCase()}</span><span id="${sid}" style="font-size:12px;color:var(--gray4);flex-shrink:0">⏳</span>`;
+    listEl.appendChild(row);
+    try{
+      if(ext==='pdf')await processPDF(file);
+      else await processSheet(file);
+      document.getElementById(sid).textContent='✓';
+      document.getElementById(sid).style.color='var(--green)';
+    }catch(e){
+      document.getElementById(sid).textContent='✗';
+      document.getElementById(sid).style.color='var(--red)';
+      setSt('err','Kunde inte läsa '+file.name);
+    }
+  }
+  document.getElementById('fileIn').value='';
+}
+
+async function processPDF(file){
+  setSt('info','AI läser PDF: '+file.name+'…');
+  const ab=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  let text='';
+  for(let i=1;i<=Math.min(pdf.numPages,8);i++){
+    const pg=await pdf.getPage(i);const tc=await pg.getTextContent();
+    text+=tc.items.map(it=>it.str).join(' ')+'\n';
+  }
+  await aiExtract(text.slice(0,9000));
+}
+
+async function processSheet(file){
+  setSt('info','Läser '+file.name+'…');
+  const ab=await file.arrayBuffer();
+  const wb=XLSX.read(ab,{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  mergeRows(rows);
+  setSt('ok',file.name+' importerad.');
+}
+
+function mergeRows(rows){
+  if(!rows.length)return;
+  const hdr=rows[0].map(c=>(c+'').toLowerCase());
+  const nC=hdr.findIndex(h=>h.includes('namn')||h.includes('name'));
+  const oC=hdr.findIndex(h=>h.includes('org')||h.includes('företag')||h.includes('company')||h.includes('projekt')||h.includes('institution'));
+  const nameCol=nC>=0?nC:0, orgCol=oC>=0?oC:1;
+  const startRow=nC>=0||oC>=0?1:0;
+  let added=0,movedInt=0,skipped=0;
+  const iN=curInt(),eN=curExt(),moved=[];
+  for(let i=startRow;i<rows.length;i++){
+    const nm=(rows[i][nameCol]||'').toString().trim();
+    const org=(rows[i][orgCol]||'').toString().trim();
+    if(!nm||nm.length<2)continue;
+    const nmL=nm.toLowerCase();
+    if(iN.has(nmL)||eN.has(nmL)){skipped++;continue;}
+    const s=SMAP.get(nmL);
+    if(s){addInt(s.n,s.d);iN.add(nmL);movedInt++;moved.push(s.n);}
+    else{addExt(nm,org);eN.add(nmL);added++;}
+  }
+  let msg=[];
+  if(added)msg.push(`<span class="bdg bdg-g">✓ ${added} externa tillagda</span>`);
+  if(movedInt)msg.push(`<span class="bdg bdg-w">⬆ ${movedInt} UI-personal → interna</span>`);
+  if(skipped)msg.push(`<span class="bdg bdg-w">⊘ ${skipped} dubbletter</span>`);
+  if(moved.length)msg.push(`<div class="imnote">Interna: ${moved.join(', ')}</div>`);
+  if(msg.length){const d=document.createElement('div');d.style.cssText='margin-top:8px';d.innerHTML=msg.join('');document.getElementById('upList').appendChild(d);}
+}
+
+async function aiExtract(txt){
+  setSt('info','AI analyserar…');
+  const sl=STAFF.map(s=>s.n).join(', ');
+  const prompt=`Du är assistent för Utrikespolitiska institutet (UI) i Stockholm.\n\nAnalysera texten nedan och extrahera information för ett representationsunderlag.\n\nINTERN PERSONAL (om dessa nämns är de interna):\n${sl}\n\nTEXT:\n${txt}\n\nSvara ENDAST med JSON utan backticks:\n{"datum":"YYYY-MM-DD eller tom","leverantor":"arrangör/restaurang eller tom","beskrivning":"syfte och aktivitet på svenska max 3 meningar","syfte_konf":"konferensens syfte om relevant annars tom","interna":[{"n":"Namn","d":"avdelning"}],"externa":[{"n":"Namn","o":"Organisation"}]}`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    const raw=data.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    const j=JSON.parse(raw);
+    if(j.datum&&!document.getElementById('f_dat').value)document.getElementById('f_dat').value=j.datum;
+    if(j.leverantor&&!document.getElementById('f_lev').value)document.getElementById('f_lev').value=j.leverantor;
+    if(j.beskrivning&&!document.getElementById('f_besk').value.trim())document.getElementById('f_besk').value=j.beskrivning;
+    if(j.syfte_konf&&!document.getElementById('f_skf').value.trim())document.getElementById('f_skf').value=j.syfte_konf;
+    const iN=curInt(),eN=curExt();
+    let aI=0,aE=0,sk=0;
+    (j.interna||[]).forEach(p=>{const l=p.n.toLowerCase();if(iN.has(l)||eN.has(l)){sk++;return;}const s=SMAP.get(l);addInt(s?s.n:p.n,s?s.d:(p.d||''));iN.add(l);aI++;});
+    (j.externa||[]).forEach(p=>{const l=p.n.toLowerCase();if(eN.has(l)||iN.has(l)){sk++;return;}const s=SMAP.get(l);if(s){addInt(s.n,s.d);iN.add(l);aI++;}else{addExt(p.n,p.o||'');eN.add(l);aE++;}});
+    let msg='✓ AI klar.';
+    if(aI)msg+=` ${aI} interna`;if(aE)msg+=`, ${aE} externa`;if(sk)msg+=` (${sk} dubblett${sk>1?'er':''} hoppade över)`;
+    setSt('ok',msg);
+  }catch(e){setSt('err','AI-tolkning misslyckades – fyll i manuellt.');}
+}
+
+function setSt(t,m){
+  const b=document.getElementById('aiBar');const sp=document.getElementById('aiSpin');const tx=document.getElementById('aiTxt');
+  b.className='sbar show '+t;sp.style.display=t==='info'?'block':'none';tx.textContent=m;
+}
+
+// ── COLLECT ──────────────────────────────────────────────
+function collect(){
+  return{
+    datum: document.getElementById('f_dat').value,
+    lev:   document.getElementById('f_lev').value,
+    re:    document.getElementById('f_re').value,
+    sam:   document.getElementById('f_sam').value,
+    besk:  document.getElementById('f_besk').value,
+    skf:   document.getElementById('f_skf').value,
+    ints:  iRows.map(id=>({n:document.getElementById('n_'+id)?.value||'',d:document.getElementById('d_'+id)?.value||''})).filter(p=>p.n.trim()),
+    exts:  eRows.map(id=>({n:document.getElementById('n_'+id)?.value||'',o:document.getElementById('d_'+id)?.value||''})).filter(p=>p.n.trim())
+  };
+}
+
+// ── PREVIEW ──────────────────────────────────────────────
+function goPreview(){
+  const d=collect();
+  const fdt=d.datum?new Date(d.datum).toLocaleDateString('sv-SE',{year:'numeric',month:'long',day:'numeric'}):'–';
+  const tot=d.ints.length+d.exts.length;
+  const iR=d.ints.map(p=>`<tr><td>${p.n}</td><td>${p.d}</td></tr>`).join('')||'<tr><td colspan="2" style="color:#999">–</td></tr>';
+  const eR=d.exts.map(p=>`<tr><td>${p.n}</td><td>${p.o}</td></tr>`).join('')||'<tr><td colspan="2" style="color:#999">–</td></tr>';
+  document.getElementById('prevCard').innerHTML=`
+    <div class="ctit">Förhandsvisning</div>
+    <div class="g2" style="margin-bottom:.9rem">
+      <div><div class="plbl">Datum</div><div class="pval">${fdt}</div></div>
+      <div><div class="plbl">Kund / leverantör</div><div class="pval">${d.lev||'–'}</div></div>
+    </div>
+    <div class="div"></div>
+    <div class="plbl">Resultatenhet / projekt</div><div class="pval">${d.re||'–'}</div>
+    ${d.sam?`<div class="plbl">Samordnare</div><div class="pval">${d.sam}</div>`:''}
+    <div class="div"></div>
+    <div class="plbl">Beskrivning</div><div class="pval" style="white-space:pre-wrap">${d.besk||'–'}</div>
+    ${d.skf?`<div class="div"></div><div class="plbl">Syftet med konferensen</div><div class="pval" style="white-space:pre-wrap">${d.skf}</div>`:''}
+    <div class="div"></div>
+    <div class="plbl">Deltagare från UI (${d.ints.length} st)</div>
+    <table class="ptbl"><thead><tr><th style="width:50%">Namn</th><th>Avdelning</th></tr></thead><tbody>${iR}</tbody></table>
+    <div style="margin-top:.9rem" class="plbl">Externa deltagare (${d.exts.length} st)</div>
+    <table class="ptbl"><thead><tr><th style="width:50%">Namn</th><th>Företag / organisation</th></tr></thead><tbody>${eR}</tbody></table>
+    <div class="div"></div>
+    <div style="font-size:12px;color:var(--gray4)">Totalt: <strong>${tot} deltagare</strong></div>`;
+  go(2);
+}
+
+// ── PDF ──────────────────────────────────────────────────
+function buildPDF(d){
+  const fdt=d.datum?new Date(d.datum).toLocaleDateString('sv-SE'):'–';
+  const today=new Date().toLocaleDateString('sv-SE');
+  const iR=d.ints.map(p=>`<tr><td>${p.n}</td><td>${p.d}</td></tr>`).join('');
+  const eR=d.exts.map(p=>`<tr><td>${p.n}</td><td>${p.o}</td></tr>`).join('');
+  const tot=d.ints.length+d.exts.length;
+  const samLine=d.sam?`<div class="fl" style="margin-top:8px">Samordnare</div><div class="fb">${d.sam}</div>`:'';
+  return`<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><title>Representationsunderlag</title><style>@page{margin:20mm 18mm 20mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#111;line-height:1.45}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #111}.ltx{font-size:7pt;letter-spacing:.13em;text-transform:uppercase;color:#444;margin-top:6px;line-height:1.8}.dr{text-align:right}.ref{font-size:8.5pt;color:#666;margin-bottom:5px}h1{font-size:13pt;font-weight:700;line-height:1.25}h1 span{font-size:10.5pt;font-weight:400;display:block}.fl{font-size:8pt;font-weight:700;margin-bottom:2px}.fb{border:1px solid #999;padding:5px 8px;font-size:10pt;min-height:22px;margin-bottom:10px}.fb.tall{min-height:55px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.warn{font-size:9pt;font-weight:700;margin:12px 0 9px;padding:6px 8px;background:#f5f5f5;border-left:3px solid #111}table{width:100%;border-collapse:collapse;margin-top:3px}th{background:#efefef;text-align:left;font-size:8pt;font-weight:700;padding:4px 7px;border:1px solid #bbb}td{font-size:9.5pt;padding:4px 7px;border:1px solid #ccc;vertical-align:top}tr:nth-child(even) td{background:#f9f9f9}.stl{font-size:8.5pt;font-weight:700;margin:12px 0 3px}.note{font-size:8pt;color:#555;margin-top:8px}</style></head><body><div class="hd"><div><svg width="46" height="58" viewBox="0 0 46 58" fill="none"><circle cx="29" cy="8" r="6.5" fill="black"/><path d="M6 18 Q6 52 23 52 Q40 52 40 18" stroke="black" stroke-width="7.5" fill="none" stroke-linecap="round"/></svg><div class="ltx">UTRIKESPOLITISKA<br>INSTITUTET</div></div><div class="dr"><div class="ref">${today}/ÅN</div><h1>Underlag leverantörsfaktura –<span>representation/konferens</span></h1></div></div><div class="fl">Datum</div><div class="fb">${fdt}</div><div class="g2"><div><div class="fl">Kund, leverantör vid representation</div><div class="fb">${d.lev||''}</div></div><div><div class="fl">Resultatenhet som ska belastas</div><div class="fb" style="text-align:right">${d.re||''}</div></div></div>${samLine}<div class="fl">Kort beskrivning av representationen: syfte, plats, typ av aktivitet</div><div class="fb tall">${(d.besk||'').replace(/\n/g,'<br>')}</div><div class="fl">Syftet med konferensen</div><div class="fb tall">${(d.skf||'').replace(/\n/g,'<br>')}</div><div class="warn">Vid konferens skall detaljerad agenda/program bifogas – minst 6 timmar (exkl lunch) per dag</div><div class="stl">Deltagare från vår arbetsplats</div><table><thead><tr><th style="width:55%">Namn</th><th>Projekt / avdelning</th></tr></thead><tbody>${iR||'<tr><td colspan="2">–</td></tr>'}</tbody></table><div class="stl" style="margin-top:12px">Deltagare från kundföretag, leverantör (externa gäster)</div><table><thead><tr><th style="width:55%">Namn</th><th>Företag / organisation</th></tr></thead><tbody>${eR||'<tr><td colspan="2">–</td></tr>'}</tbody></table><div class="note">Sammantaget ska antalet (UI + externa) deltagare vara lika många som antalet specificerade på fakturan. &nbsp; Totalt: <strong>${tot} deltagare</strong></div><script>window.onload=function(){window.print();}<\/script></body></html>`;
+}
+
+function exportPDF(){
+  const d=collect();
+  const html=buildPDF(d);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url,'_blank');
+  if(!win||win.closed||typeof win.closed==='undefined'){
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='representationsunderlag_'+(d.datum||'datum')+'.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+// ── EXCEL ────────────────────────────────────────────────
+function exportExcel(){
+  const d=collect();const fdt=d.datum?new Date(d.datum).toLocaleDateString('sv-SE'):'';
+  const wb=XLSX.utils.book_new();
+  const rows=[
+    ['Underlag leverantörsfaktura – representation/konferens'],[],
+    ['Datum',fdt],['Kund, leverantör vid representation',d.lev],
+    ['Resultatenhet / projekt som ska belastas',d.re],
+    ['Samordnare',d.sam],
+    ['Beskrivning av representationen',d.besk],
+    ['Syftet med konferensen',d.skf],[],
+    ['Deltagare från vår arbetsplats'],['Namn','Avdelning / projekt'],
+    ...d.ints.map(p=>[p.n,p.d]),[],
+    ['Externa deltagare'],['Namn','Företag / organisation'],
+    ...d.exts.map(p=>[p.n,p.o])
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:42},{wch:48}];
+  XLSX.utils.book_append_sheet(wb,ws,'Underlag');
+  XLSX.writeFile(wb,`representationsunderlag_${d.datum||'datum'}.xlsx`);
+}
+
+// ── MAIL ─────────────────────────────────────────────────
+function prefillMail(){
+  const d=collect();
+  const fdt=d.datum?new Date(d.datum).toLocaleDateString('sv-SE'):'';
+
+  // Extract just the project number if present (e.g. "420 – SCEEUS...")  → "420"
+  const reShort=d.re?d.re.split(' ')[0]:d.re;
+
+  // Subject: Representationsunderlag – [re] – [datum]
+  const parts=['Representationsunderlag'];
+  if(reShort) parts.push(reShort);
+  if(d.lev) parts.push(d.lev);
+  if(fdt) parts.push(fdt);
+  document.getElementById('mail_subj').value=parts.join(' – ');
+
+  // Short body
+  const sam=d.sam||'[samordnare]';
+  const body=`Hej,
+
+Här bifogas representationsunderlag för:
+
+Datum: ${fdt||'–'}
+Resultatenhet/projekt: ${d.re||'–'}
+Kund/leverantör: ${d.lev||'–'}
+
+Antal deltagare: ${d.ints.length+d.exts.length} (${d.ints.length} interna, ${d.exts.length} externa)
+
+Med vänliga hälsningar
+${sam}`;
+  document.getElementById('mail_body').value=body;
+
+  // Prefill CC with coordinator if found
+  const coord=COORDINATORS.find(c=>c.n===d.sam);
+  if(coord&&!document.getElementById('mail_cc').value){
+    // Can't know email automatically, leave blank but hint
+  }
+}
+
+function openOutlook(){
+  const to=encodeURIComponent(document.getElementById('mail_to').value.trim());
+  const cc=document.getElementById('mail_cc').value.trim();
+  const subj=encodeURIComponent(document.getElementById('mail_subj').value);
+  const body=encodeURIComponent(document.getElementById('mail_body').value);
+  // Try Outlook Web (Microsoft 365) deeplink first
+  const outlookUrl=`https://outlook.office.com/mail/deeplink/compose?to=${to}${cc?'&cc='+encodeURIComponent(cc):''}&subject=${subj}&body=${body}`;
+  window.open(outlookUrl,'_blank');
+  // Also trigger mailto as fallback for desktop Outlook
+  setTimeout(()=>{
+    window.location.href=`mailto:${to}?${cc?'cc='+encodeURIComponent(cc)+'&':''}subject=${subj}&body=${body}`;
+  },300);
+  const bar=document.getElementById('mailBar');
+  bar.className='sbar show ok';
+  bar.innerHTML='✓ Outlook öppnas – bifoga PDF-underlaget innan du skickar!';
+}
+
+function copyMail(){
+  const txt=document.getElementById('mail_subj').value+'\n\n'+document.getElementById('mail_body').value;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const bar=document.getElementById('mailBar');
+    bar.className='sbar show ok';
+    bar.innerHTML='✓ Kopierat till urklipp!';
+    setTimeout(()=>{bar.className='sbar';},2500);
+  });
+}
+</script>
+</body>
+</html>
